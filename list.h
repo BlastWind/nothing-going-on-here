@@ -104,7 +104,7 @@ ll_remove_first(struct linked_list *ll)
 
 
 	pthread_mutex_lock(&ll->lock);
-	if (ll->length <= 0)
+	if (ll->length == 0)
 	{
 		pthread_mutex_unlock(&ll->lock);
 		return false;

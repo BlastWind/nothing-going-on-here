@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #define NUM_THREADS 20000
 
@@ -121,8 +122,6 @@ void test_add_remove_interleaved(int thread_cnt)
 
 	int add_cnt = 0, remove_cnt = 0;
 
-	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
-
 	for (int t = 0; t < thread_cnt; t++)
 	{
 		thread_arg args;
@@ -177,6 +176,8 @@ void print_ll(struct linked_list *ll)
 
 int main(void)
 {
+	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
+
 	// printf("Starting test suite...\n");
 
 	// printf("Running Test 1: Mass add\n");
@@ -194,5 +195,6 @@ int main(void)
 	printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
 	for (int i = 0; i < 100; i++)
 		test_add_remove_interleaved(100);
+
 	printf("Passed Test 4\n");
 }
