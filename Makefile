@@ -1,6 +1,6 @@
 CC     = gcc
 INC    = -I.
-CFLAGS = $(INC) -Wall -Wextra -Werror
+CFLAGS = $(INC) -Wall -Wextra -Werror -pthread
 CFILES = $(wildcard *.c)
 OBJS   = $(patsubst %.c, %.o,$(CFILES))
 BIN    = test
@@ -10,7 +10,7 @@ BIN    = test
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
 $(BIN):$(OBJS)
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 
 exec:$(BIN)
 	./test

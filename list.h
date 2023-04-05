@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #ifndef LIST_H
 #define LIST_H
+
+#define MULTI_THREADED
 
 struct node
 {
@@ -15,6 +18,7 @@ struct linked_list
 {
 	int length;
 	struct node *first;
+	pthread_mutex_t lock;
 };
 
 static inline struct node *new_node(int val)
@@ -35,6 +39,7 @@ ll_create(void)
 	struct linked_list *ll = (struct linked_list *)malloc(sizeof(struct linked_list));
 	ll->length = 0;
 	ll->first = NULL;
+	pthread_mutex_init(&ll->lock, NULL);
 	return ll;
 }
 
@@ -61,17 +66,25 @@ static inline void
 ll_add(struct linked_list *ll, int value)
 {
 	struct node *n = new_node(value);
+
+	pthread_mutex_lock(&ll->lock);
 	n->next = ll->first;
 	ll->first = n;
 	ll->length += 1;
+	pthread_mutex_unlock(&ll->lock);
 }
 
 /*
-ll_length returns the total number of values in the linked list.
+ll_length returns the total number of values in the linked list. -1 if ll DNE.
 */
 static inline int
 ll_length(struct linked_list *ll)
 {
+#ifdef MULTI_THREADED
+	// If ll_remove_first is entered first but ll_destroy finishes in the meantime.
+	if (ll == NULL)
+		return -1;
+#endif
 	return ll->length;
 }
 
@@ -82,8 +95,18 @@ ll_remove_first returns false.
 static inline bool
 ll_remove_first(struct linked_list *ll)
 {
-	if (ll->length == 0)
+
+	// if ll_remove_first is entered first but ll_destroy finishes in the meantime.
+	if (ll == NULL)
 	{
+		return false;
+	}
+
+
+	pthread_mutex_lock(&ll->lock);
+	if (ll->length <= 0)
+	{
+		pthread_mutex_unlock(&ll->lock);
 		return false;
 	}
 
@@ -100,6 +123,7 @@ ll_remove_first(struct linked_list *ll)
 		ll->first = new_head;
 		ll->length -= 1;
 	}
+	pthread_mutex_unlock(&ll->lock);
 
 	return true;
 }
@@ -116,14 +140,17 @@ the optimization to have it return 0 (logical false), and a 1-indexed offset oth
 static inline int
 ll_contains(struct linked_list *ll, int value)
 {
-	struct node* iter = ll->first;
+	struct node *iter = ll->first;
 	int count;
 	count = 0;
-	while(iter) {
+	while (iter)
+	{
 		count += 1;
-		if (iter->data == value) {
+
+		if (iter->data == value)
+		{
 			return count;
-		} 
+		}
 		iter = iter->next;
 	}
 	return count;
