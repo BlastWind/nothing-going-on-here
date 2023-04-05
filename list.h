@@ -6,8 +6,6 @@
 #ifndef LIST_H
 #define LIST_H
 
-#define MULTI_THREADED
-
 struct node
 {
 	int data;
@@ -50,13 +48,17 @@ couldn’t be destroyed.
 static inline int
 ll_destroy(struct linked_list *ll)
 {
+	pthread_mutex_lock(&ll->lock);
 	if (ll->length == 0)
 	{
 		free(ll);
+		pthread_mutex_unlock(&ll->lock);
 		return 1;
 	}
 	else
-		return 0;
+		pthread_mutex_lock(&ll->lock);
+
+	return 0;
 }
 
 /*
@@ -78,14 +80,18 @@ ll_add(struct linked_list *ll, int value)
 ll_length returns the total number of values in the linked list. -1 if ll DNE.
 */
 static inline int
+// If ll_remove_first is entered first but ll_destroy finishes in the meantime.
 ll_length(struct linked_list *ll)
 {
-#ifdef MULTI_THREADED
-	// If ll_remove_first is entered first but ll_destroy finishes in the meantime.
+
 	if (ll == NULL)
 		return -1;
-#endif
-	return ll->length;
+
+	pthread_mutex_lock(&ll->lock);
+	int len = ll->length;
+	pthread_mutex_unlock(&ll->lock);
+
+	return len;
 }
 
 /*
@@ -101,7 +107,6 @@ ll_remove_first(struct linked_list *ll)
 	{
 		return false;
 	}
-
 
 	pthread_mutex_lock(&ll->lock);
 	if (ll->length == 0)
@@ -143,16 +148,19 @@ ll_contains(struct linked_list *ll, int value)
 	struct node *iter = ll->first;
 	int count;
 	count = 0;
+
+	pthread_mutex_lock(&ll->lock);
 	while (iter)
 	{
 		count += 1;
 
 		if (iter->data == value)
-		{
 			return count;
-		}
+
 		iter = iter->next;
 	}
+	pthread_mutex_unlock(&ll->lock);
+
 	return count;
 }
 

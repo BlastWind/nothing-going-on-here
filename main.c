@@ -145,11 +145,10 @@ void test_add_remove_interleaved(int thread_cnt)
 		pthread_join(threads[t], NULL);
 	}
 
-	printf("Add Counts: %d, Remove Count: %d, Empty removes: %d, Linked List Length: %d\n", add_cnt, remove_cnt, test_interleave_remove_counter.empty_remove_cnt, list->length);
+	// printf("Add Counts: %d, Remove Count: %d, Empty removes: %d, Linked List Length: %d\n", add_cnt, remove_cnt, test_interleave_remove_counter.empty_remove_cnt, list->length);
 
 	int res = add_cnt - remove_cnt + test_interleave_remove_counter.empty_remove_cnt;
 	res = res < 0 ? 0 : res;
-	printf("%d\n", res);
 	assert(list->length == res);
 
 	// reset empty remove cnt for future test_add_remove_interleaved
@@ -178,15 +177,15 @@ int main(void)
 {
 	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
 
-	// printf("Starting test suite...\n");
+	printf("Starting test suite...\n");
 
-	// printf("Running Test 1: Mass add\n");
-	// test_mass_add();
-	// printf("Passed Test 1\n\n");
+	printf("Running Test 1: Mass add\n");
+	test_mass_add();
+	printf("Passed Test 1\n\n");
 
-	// printf("Running Test 2: Mass remove\n");
-	// test_mass_remove();
-	// printf("Passed Test 2\n\n");
+	printf("Running Test 2: Mass remove\n");
+	test_mass_remove();
+	printf("Passed Test 2\n\n");
 
 	printf("Running Test 3: Interleaved mass add and remove\n");
 	test_add_remove_interleaved(NUM_THREADS);
