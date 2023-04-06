@@ -15,13 +15,7 @@ typedef struct
 	int thread_id;
 } thread_arg;
 
-struct removal_counter
-{
-	int empty_remove_cnt;
-	pthread_mutex_t mutex;
-};
-
-struct removal_counter test_interleave_remove_counter = {.empty_remove_cnt = 0, .mutex = PTHREAD_MUTEX_INITIALIZER};
+_Atomic int empty_removal_count = 0;
 
 void *
 concurrent_add(void *arg)
@@ -35,11 +29,7 @@ void *concurrent_remove(void *arg)
 {
 	thread_arg *args = (thread_arg *)arg;
 	if (!ll_remove_first(args->list))
-	{
-		pthread_mutex_lock(&test_interleave_remove_counter.mutex);
-		test_interleave_remove_counter.empty_remove_cnt += 1;
-		pthread_mutex_unlock(&test_interleave_remove_counter.mutex);
-	}
+		empty_removal_count += 1;
 	pthread_exit(NULL);
 }
 void test_mass_add()
@@ -147,12 +137,12 @@ void test_add_remove_interleaved(int thread_cnt)
 
 	// printf("Add Counts: %d, Remove Count: %d, Empty removes: %d, Linked List Length: %d\n", add_cnt, remove_cnt, test_interleave_remove_counter.empty_remove_cnt, list->length);
 
-	int res = add_cnt - remove_cnt + test_interleave_remove_counter.empty_remove_cnt;
+	int res = add_cnt - remove_cnt + empty_removal_count;
 	res = res < 0 ? 0 : res;
 	assert(list->length == res);
 
 	// reset empty remove cnt for future test_add_remove_interleaved
-	test_interleave_remove_counter.empty_remove_cnt = 0;
+	empty_removal_count = 0;
 }
 
 void print_ll(struct linked_list *ll)
@@ -175,6 +165,15 @@ void print_ll(struct linked_list *ll)
 
 int main(void)
 {
+
+#ifdef LOCK
+	printf("lock");
+#endif
+
+#ifdef NOLOCK
+	printf("nolock");
+#endif 
+
 	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
 
 	printf("Starting test suite...\n");
