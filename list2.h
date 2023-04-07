@@ -10,12 +10,14 @@ struct node
 {
 	int data;
 	struct node *next;
+	int rc; // reference counting
 };
 
 struct linked_list
 {
 	int length;
 	struct node *first;
+	pthread_mutex_t lock;
 };
 
 static inline struct node *new_node(int val)
@@ -23,6 +25,7 @@ static inline struct node *new_node(int val)
 	struct node *n = (struct node *)malloc(sizeof(struct node));
 	n->data = val;
 	n->next = NULL;
+	n->rc = 0;
 	return n;
 }
 
@@ -36,6 +39,7 @@ ll_create(void)
 	struct linked_list *ll = (struct linked_list *)malloc(sizeof(struct linked_list));
 	ll->length = 0;
 	ll->first = NULL;
+	pthread_mutex_init(&ll->lock, NULL);
 	return ll;
 }
 
@@ -44,13 +48,18 @@ ll_destroy deallocates a linked list, only if it is empty. Return 1 if the linke
 couldn’t be destroyed.
 */
 static inline int
-ll_destroy(struct linked_list *ll)
+ll_destroy(struct linked_list **ll)
 {
-	if (ll->length == 0)
+	pthread_mutex_lock(&(*ll)->lock);
+	if ((*ll)->length == 0)
 	{
-		free(ll);
+		free(*ll);
+		pthread_mutex_unlock(&(*ll)->lock);
+		*ll = NULL;
 		return 1;
 	}
+	else
+		pthread_mutex_lock(&(*ll)->lock);
 
 	return 0;
 }
@@ -61,11 +70,11 @@ ll_add inserts a value at the head of the linked list.
 static inline void
 ll_add(struct linked_list *ll, int value)
 {
-	struct node *n = new_node(value);
-
-	n->next = ll->first;
-	ll->first = n;
-	ll->length += 1;
+    struct node *n = new_node(value);
+    do {
+        n->next = ll->first;
+    } while (!__sync_bool_compare_and_swap(&ll->first, n->next, n)); // originally, we were doing while (1) stuff, found this in prof's slides.
+    __sync_fetch_and_add(&(ll->length), 1);
 }
 
 /*
@@ -79,7 +88,9 @@ ll_length(struct linked_list *ll)
 	if (ll == NULL)
 		return -1;
 
+	pthread_mutex_lock(&ll->lock);
 	int len = ll->length;
+	pthread_mutex_unlock(&ll->lock);
 
 	return len;
 }
@@ -92,34 +103,33 @@ static inline bool
 ll_remove_first(struct linked_list *ll)
 {
 
-	// if ll_remove_first is entered first but ll_destroy finishes in the meantime.
-	if (ll == NULL)
-	{
-		return false;
-	}
-
-	if (ll->length == 0)
-	{
-		return false;
-	}
-
-	if (ll->length == 1)
-	{
-		free(ll->first);
+    // if ll_remove_first is entered first but ll_destroy finishes in the meantime.
+    if (ll == NULL || ll->length <= 0)
+    {
+        return false;
+    }
+    if (ll->length == 1)
+    {
+        ll->length = 0;
+        free(ll->first);
 		ll->first = NULL;
-		ll->length -= 1;
-	}
-	else
-	{
-		struct node *new_head = ll->first->next;
-		free(ll->first);
-		ll->first = new_head;
-		ll->length -= 1;
-	}
-
-	return true;
+    }
+    else
+    {
+        struct node *new_head = ll->first->next;
+		struct node *tmp = ll->first;
+		struct node *tmp2 = ll->first;
+		do {
+            ll->first = ll->first->next;
+		} while (!__sync_bool_compare_and_swap(&tmp, tmp2, NULL));
+        // if (ll->first->rc == 0) {
+        //     free(ll->first);
+		// 	
+        // }
+		__sync_fetch_and_add(&(ll->length), -1); // atomically decrease ll->length
+    }
+    return true;
 }
-
 /*
 ll_contains searches the linked list from head to tail and returns the first position at which the value
 is found. In a list with n values, the head is position 1 and the tail is position n; therefore, if the value
@@ -136,15 +146,20 @@ ll_contains(struct linked_list *ll, int value)
 	int count;
 	count = 0;
 
+	pthread_mutex_lock(&ll->lock);
 	while (iter)
 	{
 		count += 1;
 
 		if (iter->data == value)
+		{
+			pthread_mutex_unlock(&ll->lock);
 			return count;
+		}
 
 		iter = iter->next;
 	}
+	pthread_mutex_unlock(&ll->lock);
 
 	return count;
 }

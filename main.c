@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <assert.h>
 #include <string.h>
-#include "list.h"
+#include "list2.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -249,30 +249,30 @@ int main(void)
 
 	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
 
-	// printf("Starting test suite...\n");
+	printf("Starting test suite...\n");
 
-	// printf("Running Test 1: Mass add\n");
-	// test_mass_add();
-	// printf("Passed Test 1\n\n");
+	printf("Running Test 1: Mass add\n");
+	test_mass_add();
+	printf("Passed Test 1\n\n");
 
-	// printf("Running Test 2: Mass remove\n");
-	// test_mass_remove();
-	// printf("Passed Test 2\n\n");
+	printf("Running Test 2: Mass remove\n");
+	test_mass_remove();
+	printf("Passed Test 2\n\n");
 
-	// printf("Running Test 3: Interleaved mass add and remove\n");
-	// test_add_remove_interleaved(NUM_THREADS);
-	// printf("Passed Test 3\n\n");
+	printf("Running Test 3: Interleaved mass add and remove\n");
+	test_add_remove_interleaved(NUM_THREADS);
+	printf("Passed Test 3\n\n");
 
-	// printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
-	// for (int i = 0; i < 100; i++)
-	// 	test_add_remove_interleaved(100);
+	printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
+	for (int i = 0; i < 100; i++)
+		test_add_remove_interleaved(100);
 
-	// printf("Passed Test 4\n");
+	printf("Passed Test 4\n");
 
-	// printf("Running Test 5: Contains and removes interleaved\n");
-	// test_remove_contains_interleaved(NUM_THREADS);
+	printf("Running Test 5: Contains and removes interleaved\n");
+	test_remove_contains_interleaved(NUM_THREADS);
 
-	// printf("Passed Test 5\n");
+	printf("Passed Test 5\n");
 
 	printf("Running Test 6: Destroy\n"); 
 	test_destroy(NUM_THREADS);
