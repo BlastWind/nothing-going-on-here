@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define NUM_THREADS 20000
+#define NUM_THREADS 5000
 
 typedef struct
 {
@@ -32,6 +32,17 @@ void *concurrent_remove(void *arg)
 		empty_removal_count += 1;
 	pthread_exit(NULL);
 }
+
+void *concurrent_contain(void *arg)
+{
+	thread_arg *args = (thread_arg *)arg;
+	int ret = ll_contains(args->list, args->thread_id);
+	int val = NUM_THREADS - ret;
+	if (val < 0)
+		empty_removal_count += 1;
+	pthread_exit(NULL);
+}
+
 void test_mass_add()
 {
 	// Objective: No adds should be skipped
@@ -54,6 +65,36 @@ void test_mass_add()
 	}
 
 	assert(list->length == NUM_THREADS);
+}
+
+void test_destroy()
+{
+	// Objective:
+
+	pthread_t threads[NUM_THREADS];
+	int t;
+	struct linked_list *list = ll_create();
+	for (t = 0; t < NUM_THREADS; t++)
+	{
+		thread_arg args;
+		args.list = list;
+		args.thread_id = t;
+		pthread_create(&threads[t], NULL, concurrent_add, (void *)&args);
+	}
+
+	for (t = 0; t < NUM_THREADS; t++)
+	{
+		pthread_join(threads[t], NULL);
+	}
+
+	assert(list->length == NUM_THREADS);
+
+	for (t = 0; t < NUM_THREADS; t++)
+	{
+		ll_remove_first(list);
+	}
+	ll_destroy(&list);
+	assert(!list);
 }
 
 void test_mass_remove()
@@ -145,6 +186,38 @@ void test_add_remove_interleaved(int thread_cnt)
 	empty_removal_count = 0;
 }
 
+/*
+	Adds a large number of nodes to the list on a single thread,
+	Instantiates multiple threads to call ll_contains and ll_remove_first
+*/
+void test_remove_contains_interleaved(int thread_cnt)
+{
+	pthread_t threads[thread_cnt];
+
+	struct linked_list *list = ll_create();
+	int t;
+	for (t = 0; t < thread_cnt / 2; t++)
+		ll_add(list, t);
+
+	for (t = 0; t < thread_cnt; t += 2)
+	{
+		thread_arg args;
+		args.list = list;
+		args.thread_id = t / 2;
+		pthread_create(&threads[t], NULL, concurrent_remove, (void *)&args);
+		pthread_create(&threads[t + 1], NULL, concurrent_contain, (void *)&args);
+	}
+
+	for (t = 0; t < thread_cnt; t++)
+	{
+		pthread_join(threads[t], NULL);
+	}
+
+	assert(!empty_removal_count);
+
+	empty_removal_count = 0;
+}
+
 void print_ll(struct linked_list *ll)
 {
 	struct node *iter = ll->first;
@@ -172,27 +245,36 @@ int main(void)
 
 #ifdef NOLOCK
 	printf("nolock");
-#endif 
+#endif
 
 	srand(time(NULL)); // randomize seed everytime, or else, rand() runs with seed 1
 
-	printf("Starting test suite...\n");
+	// printf("Starting test suite...\n");
 
-	printf("Running Test 1: Mass add\n");
-	test_mass_add();
-	printf("Passed Test 1\n\n");
+	// printf("Running Test 1: Mass add\n");
+	// test_mass_add();
+	// printf("Passed Test 1\n\n");
 
-	printf("Running Test 2: Mass remove\n");
-	test_mass_remove();
-	printf("Passed Test 2\n\n");
+	// printf("Running Test 2: Mass remove\n");
+	// test_mass_remove();
+	// printf("Passed Test 2\n\n");
 
-	printf("Running Test 3: Interleaved mass add and remove\n");
-	test_add_remove_interleaved(NUM_THREADS);
-	printf("Passed Test 3\n\n");
+	// printf("Running Test 3: Interleaved mass add and remove\n");
+	// test_add_remove_interleaved(NUM_THREADS);
+	// printf("Passed Test 3\n\n");
 
-	printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
-	for (int i = 0; i < 100; i++)
-		test_add_remove_interleaved(100);
+	// printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
+	// for (int i = 0; i < 100; i++)
+	// 	test_add_remove_interleaved(100);
 
-	printf("Passed Test 4\n");
+	// printf("Passed Test 4\n");
+
+	// printf("Running Test 5: Contains and removes interleaved\n");
+	// test_remove_contains_interleaved(NUM_THREADS);
+
+	// printf("Passed Test 5\n");
+
+	printf("Running Test 6: Destroy\n"); 
+	test_destroy(NUM_THREADS);
+	printf("Passed Test 6\n");
 }

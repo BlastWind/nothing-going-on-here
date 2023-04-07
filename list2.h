@@ -16,7 +16,6 @@ struct linked_list
 {
 	int length;
 	struct node *first;
-	pthread_mutex_t lock;
 };
 
 static inline struct node *new_node(int val)
@@ -37,7 +36,6 @@ ll_create(void)
 	struct linked_list *ll = (struct linked_list *)malloc(sizeof(struct linked_list));
 	ll->length = 0;
 	ll->first = NULL;
-	pthread_mutex_init(&ll->lock, NULL);
 	return ll;
 }
 
@@ -46,18 +44,13 @@ ll_destroy deallocates a linked list, only if it is empty. Return 1 if the linke
 couldn’t be destroyed.
 */
 static inline int
-ll_destroy(struct linked_list **ll)
+ll_destroy(struct linked_list *ll)
 {
-	pthread_mutex_lock(&(*ll)->lock);
-	if ((*ll)->length == 0)
+	if (ll->length == 0)
 	{
-		free(*ll);
-		pthread_mutex_unlock(&(*ll)->lock);
-		*ll = NULL;
+		free(ll);
 		return 1;
 	}
-	else
-		pthread_mutex_lock(&(*ll)->lock);
 
 	return 0;
 }
@@ -70,11 +63,9 @@ ll_add(struct linked_list *ll, int value)
 {
 	struct node *n = new_node(value);
 
-	pthread_mutex_lock(&ll->lock);
 	n->next = ll->first;
 	ll->first = n;
 	ll->length += 1;
-	pthread_mutex_unlock(&ll->lock);
 }
 
 /*
@@ -88,9 +79,7 @@ ll_length(struct linked_list *ll)
 	if (ll == NULL)
 		return -1;
 
-	pthread_mutex_lock(&ll->lock);
 	int len = ll->length;
-	pthread_mutex_unlock(&ll->lock);
 
 	return len;
 }
@@ -109,10 +98,8 @@ ll_remove_first(struct linked_list *ll)
 		return false;
 	}
 
-	pthread_mutex_lock(&ll->lock);
 	if (ll->length == 0)
 	{
-		pthread_mutex_unlock(&ll->lock);
 		return false;
 	}
 
@@ -129,7 +116,6 @@ ll_remove_first(struct linked_list *ll)
 		ll->first = new_head;
 		ll->length -= 1;
 	}
-	pthread_mutex_unlock(&ll->lock);
 
 	return true;
 }
@@ -150,20 +136,15 @@ ll_contains(struct linked_list *ll, int value)
 	int count;
 	count = 0;
 
-	pthread_mutex_lock(&ll->lock);
 	while (iter)
 	{
 		count += 1;
 
 		if (iter->data == value)
-		{
-			pthread_mutex_unlock(&ll->lock);
 			return count;
-		}
 
 		iter = iter->next;
 	}
-	pthread_mutex_unlock(&ll->lock);
 
 	return count;
 }
