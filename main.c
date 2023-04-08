@@ -49,10 +49,13 @@ typedef struct
 void *concurrent_contain(void *arg)
 {
 	concurrent_contain_thread_arg *args = (concurrent_contain_thread_arg *)arg;
-	int ret = ll_contains(args->list, args->thread_id);
-	int val = args->max_threads - ret; // shouldn't be negative
-	if (val < 0)
+	int index = ll_contains(args->list, args->thread_id); // index of the thread_id = max_threads - thread_id (w/o any removals)
+	int init_index = args->max_threads - args->thread_id;
+	if (index > init_index+1) // w/ removals, the index can only be less than max_threads - thread_id; therefore, if it's greater, it was an invalid contain
+	{
+		// printf("index %d, max_thread %d, thread id %d, max index %d\n", index, args->max_threads, args->thread_id, init_index);
 		invalid_contains_count += 1;
+	}
 	pthread_exit(NULL);
 }
 
@@ -198,6 +201,7 @@ void test_add_remove_interleaved(int thread_cnt)
 	// reset empty remove cnt for future test_add_remove_interleaved
 	empty_removal_count = 0;
 }
+void print_ll(struct linked_list *);
 
 /*
 	Adds a large number of nodes to the list on a single thread,
@@ -209,9 +213,10 @@ void test_remove_contains_interleaved(int thread_cnt)
 
 	struct linked_list *list = ll_create();
 	int t;
-	for (t = 0; t < thread_cnt / 2; t++)
+	for (t = 0; t < thread_cnt / 2; t++) {
 		ll_add(list, t);
-
+	}
+	//print_ll(list);
 	for (t = 0; t < thread_cnt; t += 2)
 	{
 		thread_arg args;
@@ -282,7 +287,7 @@ int main(void)
 	printf("Running Test 4: Multiple, smaller interleaved mass add and remove\n");
 	for (int i = 0; i < 100; i++)
 		test_add_remove_interleaved(100);
-	printf("Passed Test 4\n\n");
+	printf("Passed Test 4\n");
 
 	printf("Running Test 5: Contains and removes interleaved\n");
 	test_remove_contains_interleaved(NUM_THREADS);

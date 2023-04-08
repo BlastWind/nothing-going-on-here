@@ -107,7 +107,8 @@ ll_remove_first(struct linked_list *ll)
 	do
 	{
 		old_first = ll->first;
-		new_head = old_first ? old_first->next : NULL;
+		if (old_first == NULL) return false;
+		new_head = old_first->next;
 	} while (!__sync_bool_compare_and_swap(&ll->first, old_first, new_head));
 	free(old_first);
 	__sync_fetch_and_sub(&(ll->length), 1);

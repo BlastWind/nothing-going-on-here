@@ -10,7 +10,7 @@ LOCKFLAG = -D LOCKS
 lock:$(CFILES) list.h
 	$(CC) $(CFLAGS) -o $(BIN) $^ $(LOCKFLAG)
 
-nolock:$(CFILES) $@_list.h
+nolock:$(CFILES) nolock_list.h
 	$(CC) $(CFLAGS) -o $(BIN) $^
 
 $(BIN):$(OBJS)
