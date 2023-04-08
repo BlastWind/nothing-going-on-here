@@ -1,25 +1,21 @@
-# Homework 1: simple linked list
+# Instructions
 
-The following should work when you are done with your assignment:
-
-```
-$ make
-$ ./test
-$ make clean
-```
-
-Your `main.c` must include a comprehensive test suite.
-We will test with our own `main.c` by doing:
+Run locked version
 
 ```
-$ mv main.c main.c.saved
-$ cp ../ourmain.c main.c
-$ make
-$ ./test
-...our unit tests run here
-$ mv main.c.saved main.c
+make clean && make lock && ./test
 ```
 
-## Specification
+Run lock-free version
 
-Please see `csci3411_hw1.pdf` for the homework specification.
+```
+make clean && make nolock && ./test
+```
+
+We admit that there exist bugs in the lock-free linked-list. 
+1) `ll_remove_first` runs into a double free error via Test 4. This only gets caught by the test suite roughly 1 out of 50 times. We ran the test suite multiple times to catch these obscurities.
+`for i in {1..100}; do ./test; done;`
+2) We don't have code that solves the problem of `ll_contains` reading a deleted node. We have a `rc` (reference count) in our `Node` but it's not implemented/utilized.
+
+
+Willem and I really enjoyed the assignment. Though we didn't complete it, we learned a lot, and we do plan to tackling this in our free time.

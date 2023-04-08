@@ -85,15 +85,9 @@ static inline int
 // If ll_remove_first is entered first but ll_destroy finishes in the meantime.
 ll_length(struct linked_list *ll)
 {
-
 	if (ll == NULL)
 		return -1;
-
-	pthread_mutex_lock(&ll->lock);
-	int len = ll->length;
-	pthread_mutex_unlock(&ll->lock);
-
-	return len;
+	return ll->length;
 }
 
 /*
@@ -105,65 +99,19 @@ ll_remove_first(struct linked_list *ll)
 {
 
 	// if ll_remove_first is entered first but ll_destroy finishes in the meantime.
-	if (ll == NULL || ll->length <= 0)
+	if (ll == NULL)
 	{
 		return false;
 	}
-
-	if (ll->length == 1)
+    printf("Remove Call\n");
+	struct node *old_first;
+	struct node *new_head;
+	do
 	{
-		__sync_fetch_and_sub(&(ll->length), 1);
-		struct node *old_first;
-		do
-		{
-			old_first = ll->first;
-		} while (!__sync_bool_compare_and_swap(&ll->first, old_first, NULL));
-		free(old_first);
-		// while (1)
-		// {
-		// 	struct node *old_first = ll->first;
-		// 	if (__sync_bool_compare_and_swap(&(ll->first), old_first, NULL))
-		// 	{
-		// 		free(ll->first);
-		// 		ll->first = NULL;
-		// 		__sync_fetch_and_add(&(ll->length), -1);
-		// 		break;
-		// 	}
-		// }
-	}
-	else
-	{
-		__sync_fetch_and_sub(&(ll->length), 1);
-		// while (1)
-		// {
-		struct node *old_first; // = ll->first;
-		// struct node *new_head;
-
-		// while (!__sync_bool_compare_and_swap(&old_first, ll->first, ll->first) ||
-		// 	   !__sync_bool_compare_and_swap(&new_head, old_first->next, old_first->next))
-		// {
-		// 	old_first = ll->first;
-		// }
-		do
-		{
-			old_first = ll->first;
-		} while (!__sync_bool_compare_and_swap(&ll->first, old_first, ll->first->next));
-		free(old_first); // 3
-		// old_first = ll->first;		// 1
-		// ll->first = ll->first->next;// 2
-		/*
-		1:1,2   3
-		2:   1,2 3
-		*/
-		// 3 never goes before 1, old_first can never equal null
-		// if (__sync_bool_compare_and_swap(&(ll->first), old_first, new_head)) // if ll->first valid, swap it with correct, new head
-		// {
-		// 	free(old_first); // double free can still happen because two threads could be here...
-		// 	old_first = NULL;
-		// break;
-		// }
-		// }
-	}
+		old_first = ll->first;
+		new_head = old_first ? old_first->next : NULL;
+	} while (!__sync_bool_compare_and_swap(&ll->first, old_first, new_head));
+	free(old_first);
 
 	return true;
 }
@@ -183,20 +131,18 @@ ll_contains(struct linked_list *ll, int value)
 	int count;
 	count = 0;
 
-	pthread_mutex_lock(&ll->lock);
 	while (iter)
 	{
+        __sync_fetch_and_add(&iter->rc, 1);
 		count += 1;
 
 		if (iter->data == value)
 		{
-			pthread_mutex_unlock(&ll->lock);
 			return count;
 		}
-
+        __sync_fetch_and_sub(&iter->rc, 1);
 		iter = iter->next;
 	}
-	pthread_mutex_unlock(&ll->lock);
 
 	return count;
 }

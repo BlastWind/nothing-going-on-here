@@ -3,19 +3,20 @@ INC    = -I.
 CFLAGS = $(INC) -Wall -Wextra -Werror -pthread
 CFILES = $(wildcard *.c)
 OBJS   = $(patsubst %.c, %.o,$(CFILES))
+HEADERS = $(wildcard *.h)
 BIN    = test
-LOCKFLAG = -D list_version=1
-NOLOCKFLAG = -D list_version=0
+LOCKFLAG = -D LOCKS
 
-%.o:%.c
-    $(info Compiling $<)
-    @$(CC) $(CFLAGS) -o $@ -c $< $(LOCKFLAG)
+# %.o:%.c
+# 	$(info Compiling $<)
+# 	@$(CC) $(CFLAGS) -o $@ -c $< $(LOCKFLAG)
 
-lock:$(OBJS)
-    $(CC) $(CFLAGS) -o $(BIN) $^ $(LOCKFLAG)
+lock:$(OBJS) list.h
+	$(CC) $(CFLAGS) -o $(BIN) $^ $(LOCKFLAG)
 
-nolock:$(OBJS)
-    $(CC) $(CFLAGS) -o $(BIN) $^ $(NOLOCKFLAG)
+nolock:$(OBJS) $@_list.h
+	$(CC) $(CFLAGS) -o $(BIN) $^
+
 $(BIN):$(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
