@@ -82,9 +82,9 @@ ll_add(struct linked_list *ll, int value)
 ll_length returns the total number of values in the linked list. -1 if ll DNE.
 */
 static inline int
-// If ll_remove_first is entered first but ll_destroy finishes in the meantime.
 ll_length(struct linked_list *ll)
 {
+	// If ll_remove_first is entered first but ll_destroy finishes in the meantime.
 	if (ll == NULL)
 		return -1;
 	return ll->length;
@@ -97,13 +97,11 @@ ll_remove_first returns false.
 static inline bool
 ll_remove_first(struct linked_list *ll)
 {
-
 	// if ll_remove_first is entered first but ll_destroy finishes in the meantime.
-	if (ll == NULL)
+	if (ll == NULL || ll->length <= 0)
 	{
 		return false;
 	}
-    printf("Remove Call\n");
 	struct node *old_first;
 	struct node *new_head;
 	do
@@ -112,7 +110,7 @@ ll_remove_first(struct linked_list *ll)
 		new_head = old_first ? old_first->next : NULL;
 	} while (!__sync_bool_compare_and_swap(&ll->first, old_first, new_head));
 	free(old_first);
-
+	__sync_fetch_and_sub(&(ll->length), 1);
 	return true;
 }
 /*

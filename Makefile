@@ -7,14 +7,10 @@ HEADERS = $(wildcard *.h)
 BIN    = test
 LOCKFLAG = -D LOCKS
 
-# %.o:%.c
-# 	$(info Compiling $<)
-# 	@$(CC) $(CFLAGS) -o $@ -c $< $(LOCKFLAG)
-
-lock:$(OBJS) list.h
+lock:$(CFILES) list.h
 	$(CC) $(CFLAGS) -o $(BIN) $^ $(LOCKFLAG)
 
-nolock:$(OBJS) $@_list.h
+nolock:$(CFILES) $@_list.h
 	$(CC) $(CFLAGS) -o $(BIN) $^
 
 $(BIN):$(OBJS)
